@@ -37,3 +37,14 @@ rsa-certificate-on-token.pdf: Signature Validation: Signature is Valid.
 For a real device, install its vendor library in the image and point
 `MODULE` at it; the token, labels and PIN of the smoke test then need to
 match the device.
+
+## GOST
+
+`docker/gost/` is a separate image: PHP with OpenSSL's gost engine, for the
+GOST R 34.10-2012 tests against an emulated token (the SoftHSM2 package
+here is built without GOST, so there is no live GOST token):
+
+```bash
+docker build -t php-pdf-pkcs11-gost docker/gost
+docker run --rm -v "$PWD":/app -w /app php-pdf-pkcs11-gost sh -c 'composer update && vendor/bin/phpunit'
+```

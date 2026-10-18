@@ -120,4 +120,20 @@ final class Pkcs11SignerTest extends TestCase
         $sign = array_values(array_filter($token->calls, static fn (array $c): bool => $c[0] === 'sign'));
         self::assertStringStartsWith(hex2bin('3051300d060960864801650304020305000440'), (string) $sign[0][2]);
     }
+
+    #[Test]
+    public function token_hashing_is_for_gost_keys_only(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('GOST keys only');
+        Pkcs11Signer::fromToken(self::token(), hashOnToken: true);
+    }
+
+    #[Test]
+    public function a_streebog_digest_needs_a_gost_key(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('needs a GOST key');
+        Pkcs11Signer::fromToken(self::token(), digest: DigestAlgorithm::Gost256);
+    }
 }

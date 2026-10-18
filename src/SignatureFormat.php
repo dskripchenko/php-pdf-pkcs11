@@ -8,6 +8,8 @@ use Dskripchenko\PhpPdf\Pdf\Signature\Signer\DigestAlgorithm;
 
 /**
  * Converts between what a token takes and returns and what CMS carries.
+ * GOST values need no conversion in the standard case: see
+ * {@see self::gostCandidates()}.
  *
  * @internal
  */
@@ -42,6 +44,33 @@ final class SignatureFormat
         $body = self::integer(substr($raw, 0, $half)).self::integer(substr($raw, $half));
 
         return "\x30".self::length(strlen($body)).$body;
+    }
+
+    /**
+     * The encodings a token may return a GOST R 34.10-2012 signature in,
+     * most likely first, each converted to what CMS carries: `s ‖ r`,
+     * big-endian (RFC 4491, 2.2.2; RFC 9215) — also what PKCS#11 v2.40
+     * (2.45.7) specifies and OpenSSL's gost engine writes. Fallbacks: the
+     * halves swapped (`r ‖ s`), the whole value byte-reversed (CryptoAPI
+     * style), and each half reversed in place.
+     *
+     * @return list<string>
+     */
+    public static function gostCandidates(string $raw, int $bits): array
+    {
+        $length = intdiv($bits, 4);
+        if (strlen($raw) !== $length) {
+            throw new Pkcs11Exception('PKCS#11: the token returned a GOST signature of '.strlen($raw).' bytes, expected '.$length);
+        }
+        $half = intdiv($length, 2);
+        [$first, $second] = [substr($raw, 0, $half), substr($raw, $half)];
+
+        return array_values(array_unique([
+            $raw,
+            $second.$first,
+            strrev($raw),
+            strrev($first).strrev($second),
+        ]));
     }
 
     private static function integer(string $magnitude): string

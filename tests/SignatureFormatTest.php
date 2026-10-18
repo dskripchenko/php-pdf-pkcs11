@@ -37,6 +37,28 @@ final class SignatureFormatTest extends TestCase
     }
 
     #[Test]
+    public function gost_candidates_start_with_the_value_as_is(): void
+    {
+        $s = str_repeat("\x11", 15)."\x1f";
+        $r = str_repeat("\x22", 15)."\x2f";
+
+        self::assertSame(
+            [$s.$r, $r.$s, strrev($s.$r), strrev($s).strrev($r)],
+            SignatureFormat::gostCandidates($s.$r, 128),
+        );
+        self::assertCount(4, SignatureFormat::gostCandidates(random_bytes(64), 256));
+        self::assertCount(4, SignatureFormat::gostCandidates(random_bytes(128), 512));
+    }
+
+    #[Test]
+    public function a_gost_value_of_the_wrong_length_is_refused(): void
+    {
+        $this->expectException(Pkcs11Exception::class);
+        $this->expectExceptionMessage('64 bytes, expected 128');
+        SignatureFormat::gostCandidates(random_bytes(64), 512);
+    }
+
+    #[Test]
     public function the_module_error_is_explained(): void
     {
         $e = Pkcs11Exception::fromModule('login', new \Exception('(0x000000a0/CKR_PIN_INCORRECT) PKCS#11 module error: Unable to login', 0xA0));
