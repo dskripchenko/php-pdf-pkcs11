@@ -4,7 +4,7 @@ All notable changes to `dskripchenko/php-pdf-pkcs11` are documented in this file
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] — 2026-10-18
 
 ### Added
 - GOST R 34.10-2012 keys (256 and 512 bits) on TC26-compliant PKCS#11
