@@ -86,6 +86,7 @@ keyId: — label "rsa", id 01; label "ec", id 02".
 
 ## Требования
 
+- **PHP 8.2+** и `dskripchenko/php-pdf` 1.19 или новее (Composer установит его сам).
 - **Расширение php-pkcs11** —
   [gamringer/php-pkcs11](https://github.com/gamringer/php-pkcs11), собранное
   под вашу версию PHP (`phpize && ./configure && make install`).
@@ -110,6 +111,17 @@ keyId: — label "rsa", id 01; label "ec", id 02".
 `PhpPkcs11Token` — его реализация поверх расширения. Передайте свой `Token`
 в `Pkcs11Signer::fromToken()`, чтобы запускать код без устройства — так
 делают тесты этого пакета с токеном в памяти на OpenSSL.
+
+## Семейство php-pdf
+
+| Пакет | Что добавляет |
+|---|---|
+| [php-pdf](https://github.com/dskripchenko/php-pdf) | Ядро: HTML с CSS или билдер в PDF, чтение, слияние, заполнение форм, подпись и проверка. |
+| [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-pdf) | Мост для Laravel: Blade-шаблон сразу в PDF, `response()->pdf()`, подпись из конфига. |
+| [php-pdf-fonts-liberation](https://github.com/dskripchenko/php-pdf-fonts-liberation) | Liberation Sans, Serif и Mono, метрически совместимые с Arial, Times New Roman и Courier New (OFL, вынесены из MIT-ядра). |
+| [php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro) | Подпись ключом в КриптоПро CSP на сервере: ГОСТ Р 34.10-2012, российская квалифицированная подпись. |
+| **php-pdf-pkcs11** (этот пакет) | Подпись ключом на HSM, смарт-карте или USB-токене через PKCS#11. |
+| [php-pdf-cloud-kms](https://github.com/dskripchenko/php-pdf-cloud-kms) | Подпись ключом в AWS KMS, Google Cloud KMS или Azure Key Vault. |
 
 ## Лицензия
 
