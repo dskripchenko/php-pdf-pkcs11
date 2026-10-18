@@ -6,7 +6,7 @@ oder PCIe-HSM (Thales Luna, Entrust nShield, Utimaco, AWS CloudHSM), einer
 Smartcard oder einem nationalen eID-Ausweis, einem USB-Token (YubiKey,
 SafeNet eToken, Rutoken) oder SoftHSM. Der Schlüssel verlässt das Gerät nie:
 php-pdf berechnet den Hash, der Token signiert ihn, und das Ergebnis ist eine
-PAdES-Signatur mit RSA oder ECDSA.
+PAdES-Signatur mit RSA, ECDSA oder GOST R 34.10-2012.
 
 > 🌐 [English](../../README.md) · **Deutsch** · [Русский](../ru/README.md) · [中文](../zh/README.md)
 
@@ -52,13 +52,53 @@ akzeptiert.
 | `keyId` | — | `CKA_ID` des privaten Schlüssels, hex: `01`, `0x01`, `a1:b2` (wie `pkcs11-tool -O` sie anzeigt). Ohne Label und ID der einzige private Schlüssel |
 | `certificatePem` | vom Token | Das Signaturzertifikat, wenn der Token es nicht enthält |
 | `chainPem` | `[]` | Einzubettende Zwischenzertifikate — ein PEM-Bundle oder eine Liste |
-| `digest` | nach Schlüssel | SHA-256 für RSA und P-256, SHA-384 für P-384, SHA-512 für P-521 |
+| `digest` | nach Schlüssel | SHA-256 für RSA und P-256, SHA-384 für P-384, SHA-512 für P-521; Streebog-256/512 für GOST (dort die einzige Wahl) |
+| `hashOnToken` | `false` | Nur GOST: der Token hasht die Daten selbst (siehe unten) |
 
 Der Hash wird in PHP berechnet, und der Token signiert ihn mit
 `CKM_RSA_PKCS` (über einer `DigestInfo`) oder `CKM_ECDSA`. Jeder Token, der
 überhaupt signiert, unterstützt diese beiden, das Dokument wird nie durch
 das Gerät gestreamt, und die eigene SHA-2-Unterstützung des Tokens spielt
 keine Rolle.
+
+## GOST R 34.10-2012
+
+GOST-Schlüssel auf TC26-konformen Tokens — Rutoken ECP 2.0/3.0, JaCarta GOST
+und andere Module mit den TC26-Erweiterungen für PKCS#11 — signieren wie
+jeder andere Schlüssel; Hash und Zertifikat folgen dem Schlüssel:
+
+| Schlüssel | Hash | Mechanismus | Eingabe des Tokens |
+|---|---|---|---|
+| GOST R 34.10-2012, 256 Bit | Streebog-256 | `CKM_GOSTR3410` (`0x1201`) | der 32-Byte-Hash |
+| GOST R 34.10-2012, 512 Bit | Streebog-512 | `CKM_GOSTR3410_512` (`0xD4321006`) | der 64-Byte-Hash |
+
+Mit `hashOnToken: true` hasht der Token die signierten Attribute selbst, mit
+`CKM_GOSTR3410_WITH_GOSTR3411_12_256` (`0xD4321008`) oder `…_512`
+(`0xD4321009`) — für einen Token, der die einfachen Mechanismen nicht bietet.
+
+PKCS#11 (v2.40, 2.45.7) liefert die Signatur als `s ‖ r`, Big-Endian — die
+Kodierung, die CMS trägt (RFC 4491, 2.2.2) und die OpenSSLs gost-Engine
+schreibt —, daher geht der Wert unverändert ins PDF. Da Tokens hier schon
+abgewichen sind, prüft der Signierer den Wert gegen das Zertifikat und
+versucht, wenn er nicht passt, die vertauschten Hälften, den ganzen Wert in
+umgekehrter Byte-Reihenfolge und jede Hälfte umgekehrt, und nimmt den, der
+sich verifizieren lässt; passt keiner, gehört der Schlüssel nicht zum
+Zertifikat, und es gibt eine `Pkcs11Exception`.
+
+GOST braucht **OpenSSLs gost-Engine, in PHP geladen** (der Abschnitt
+`engines` in `openssl.cnf`): php-pdf berechnet damit Streebog und
+verifiziert, ob der Token hasht oder nicht. `docker/gost/` baut ein solches
+PHP; sein `enable-gost-engine.sh` schaltet die Engine in der Standardkonfiguration ein.
+
+**Prüfstand.** Der GOST-Weg ist durchgehend getestet — Signatur, PDF und
+der Validator von php-pdf — gegen einen emulierten Token, der mit einem
+echten GOST-R-34.10-2012-Schlüssel (256 und 512) über OpenSSLs gost-Engine
+signiert und den Wert in jeder der obigen Kodierungen zurückgibt; die CI
+führt das im Image `docker/gost` aus. Auf einem physischen Rutoken oder
+JaCarta lief es noch nicht, und für einen Live-Test gibt es keinen
+Software-Token: SoftHSM2 in Ubuntu 24.04 ist ohne GOST gebaut, und SoftHSM2
+kennt bestenfalls GOST R 34.10-2001. Berichte von echten Geräten sind
+willkommen.
 
 ## Langlebige Worker
 
@@ -100,8 +140,9 @@ haben — "2 private keys match, pass keyLabel: or keyId: — label "rsa", id
   pinnt den Commit, mit dem das Paket geprüft ist.
 - **Die PKCS#11-Bibliothek des Herstellers** für das Gerät und Zugriff
   darauf für den Benutzer, unter dem PHP läuft.
-- **RSA- oder EC-Schlüssel.** GOST-Schlüssel werden abgelehnt: GOST
-  signieren Sie über CryptoPro CSP mit
+- **RSA-, EC- oder GOST-R-34.10-2012-Schlüssel.** GOST braucht zusätzlich
+  OpenSSLs gost-Engine in PHP (siehe oben). Für Schlüssel in CryptoPro CSP
+  statt auf einem PKCS#11-Token gibt es
   [dskripchenko/php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro).
 
 ## Ausprobieren mit SoftHSM
@@ -110,7 +151,8 @@ haben — "2 private keys match, pass keyLabel: or keyId: — label "rsa", id
 einen Token mit einem RSA- und einem EC-Schlüssel sowie Zertifikaten einer
 Wegwerf-Wurzel an, signiert PDFs und validiert sie mit php-pdf und
 `pdfsig` aus poppler — siehe [docker/README.md](../../docker/README.md).
-Die CI führt das bei jeder Änderung aus.
+Die CI führt das bei jeder Änderung aus, die GOST-Tests in `docker/gost/`
+(PHP mit der gost-Engine).
 
 ## Tests ohne Token
 

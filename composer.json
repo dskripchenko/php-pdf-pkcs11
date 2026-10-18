@@ -1,6 +1,6 @@
 {
     "name": "dskripchenko/php-pdf-pkcs11",
-    "description": "PKCS#11 signer for dskripchenko/php-pdf: sign PDFs (PAdES, RSA and ECDSA) with a key held by an HSM, a smart card or a USB token, through the php-pkcs11 extension.",
+    "description": "PKCS#11 signer for dskripchenko/php-pdf: sign PDFs (PAdES: RSA, ECDSA and GOST R 34.10-2012) with a key held by an HSM, a smart card or a USB token, through the php-pkcs11 extension.",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -9,6 +9,8 @@
         "pades",
         "pkcs11",
         "hsm",
+        "gost",
+        "rutoken",
         "smart-card",
         "token",
         "softhsm",

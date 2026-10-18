@@ -35,6 +35,32 @@ jobs:
       - name: Run tests
         run: vendor/bin/phpunit
 
+  gost:
+    runs-on: ubuntu-latest
+    name: GOST R 34.10-2012 (OpenSSL gost engine, emulated token)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the PHP + gost engine image
+        uses: docker/build-push-action@v6
+        with:
+          context: docker/gost
+          tags: php-pdf-pkcs11-gost
+          load: true
+          cache-from: type=gha,scope=php-pdf-pkcs11-gost
+          cache-to: type=gha,scope=php-pdf-pkcs11-gost,mode=max
+
+      - name: Run the tests with the engine loaded
+        run: |
+          docker run --rm -v "$PWD:/app" -w /app php-pdf-pkcs11-gost sh -c '
+            composer update --prefer-dist --no-interaction --no-progress &&
+            vendor/bin/phpunit --display-skipped --fail-on-skipped'
+
   static-analysis:
     runs-on: ubuntu-latest
     name: PHPStan (level 6)

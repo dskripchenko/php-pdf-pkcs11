@@ -5,7 +5,7 @@ using a key held by a **PKCS#11 token**: a network or PCIe HSM (Thales Luna,
 Entrust nShield, Utimaco, AWS CloudHSM), a smart card or a national eID card,
 a USB token (YubiKey, SafeNet eToken, Rutoken), or SoftHSM. The key never
 leaves the device: php-pdf computes the digest, the token signs it, and the
-result is a PAdES signature with RSA or ECDSA.
+result is a PAdES signature with RSA, ECDSA or GOST R 34.10-2012.
 
 > 🌐 **English** · [Deutsch](docs/de/README.md) · [Русский](docs/ru/README.md) · [中文](docs/zh/README.md)
 
@@ -56,12 +56,50 @@ producing a PDF no reader accepts.
 | `keyId` | — | The private key's `CKA_ID`, hex: `01`, `0x01`, `a1:b2` (as `pkcs11-tool -O` shows it). With neither label nor id, the only private key |
 | `certificatePem` | from the token | The signing certificate, when the token does not hold it |
 | `chainPem` | `[]` | Intermediate certificates to embed — a PEM bundle or a list |
-| `digest` | by the key | SHA-256 for RSA and P-256, SHA-384 for P-384, SHA-512 for P-521 |
+| `digest` | by the key | SHA-256 for RSA and P-256, SHA-384 for P-384, SHA-512 for P-521; Streebog-256/512 for GOST (the only choice there) |
+| `hashOnToken` | `false` | GOST only: the token hashes the data itself (see below) |
 
 The digest is computed in PHP and the token signs it with `CKM_RSA_PKCS`
 (over a `DigestInfo`) or `CKM_ECDSA`. Every token that signs at all supports
 these two, the document is never streamed through the device, and the
 token's own SHA-2 support does not matter.
+
+## GOST R 34.10-2012
+
+GOST keys on TC26-compliant tokens — Rutoken ECP 2.0/3.0, JaCarta GOST and
+other modules that implement the TC26 PKCS#11 extensions — sign like any
+other key; the digest and the certificate follow the key:
+
+| Key | Digest | Mechanism | Token input |
+|---|---|---|---|
+| GOST R 34.10-2012, 256-bit | Streebog-256 | `CKM_GOSTR3410` (`0x1201`) | the 32-byte digest |
+| GOST R 34.10-2012, 512-bit | Streebog-512 | `CKM_GOSTR3410_512` (`0xD4321006`) | the 64-byte digest |
+
+With `hashOnToken: true` the token hashes the signed attributes itself, with
+`CKM_GOSTR3410_WITH_GOSTR3411_12_256` (`0xD4321008`) or `…_512`
+(`0xD4321009`) — for a token that does not offer the plain mechanisms.
+
+PKCS#11 (v2.40, 2.45.7) returns the signature as `s ‖ r`, big-endian — the
+encoding CMS carries (RFC 4491, 2.2.2) and OpenSSL's gost engine writes —
+so the value goes into the PDF as is. Since tokens have been known to
+differ, the signer verifies the value against the certificate and, if it
+does not verify, tries the halves swapped, the whole value byte-reversed and
+each half reversed, and takes the one that verifies; if none does, the key
+does not belong to the certificate and you get a `Pkcs11Exception`.
+
+GOST needs **OpenSSL's gost engine loaded into PHP** (the `engines` section
+of `openssl.cnf`): php-pdf computes Streebog and verifies with it, whether
+the token hashes or not. `docker/gost/` builds such a PHP; its
+`enable-gost-engine.sh` switches the engine on in the stock config.
+
+**Verification status.** The GOST path is tested end to end — signing, the
+PDF and php-pdf's validator — against an emulated token that signs with a
+real GOST R 34.10-2012 key (256 and 512) through OpenSSL's gost engine and
+returns the value in each of the encodings above; CI runs it in the
+`docker/gost` image. It has not yet been run on a physical Rutoken or
+JaCarta, and there is no software token to run it live: the SoftHSM2 in
+Ubuntu 24.04 is built without GOST, and SoftHSM2 knows only GOST R
+34.10-2001 at best. Reports from a real device are welcome.
 
 ## Long-running workers
 
@@ -100,15 +138,18 @@ keyLabel: or keyId: — label "rsa", id 01; label "ec", id 02".
   package is verified with.
 - **The vendor's PKCS#11 library** for the device, and access to it for the
   user PHP runs as.
-- **RSA or EC keys.** GOST keys are refused: sign GOST through CryptoPro CSP
-  with [dskripchenko/php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro).
+- **RSA, EC or GOST R 34.10-2012 keys.** GOST also needs OpenSSL's gost
+  engine in PHP (see above). For keys in CryptoPro CSP rather than on a
+  PKCS#11 token, use
+  [dskripchenko/php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro).
 
 ## Trying it on SoftHSM
 
 `docker/` builds a container with PHP 8.3, php-pkcs11 and SoftHSM2, creates
 a token with an RSA and an EC key and certificates from a throwaway root,
 signs PDFs and validates them with php-pdf and poppler's `pdfsig` — see
-[docker/README.md](docker/README.md). CI runs it on every change.
+[docker/README.md](docker/README.md). CI runs it on every change, and runs
+the GOST tests in `docker/gost/` (PHP with the gost engine).
 
 ## Testing without a token
 
