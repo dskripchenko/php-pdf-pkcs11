@@ -80,6 +80,7 @@ id 01; label "ec", id 02"。
 
 ## 要求
 
+- **PHP 8.2+**，以及 `dskripchenko/php-pdf` 1.19 或更高版本（由 Composer 安装）。
 - **php-pkcs11 扩展**——
   [gamringer/php-pkcs11](https://github.com/gamringer/php-pkcs11)，针对你的
   PHP 版本编译（`phpize && ./configure && make install`）。本包的
@@ -101,6 +102,17 @@ CI 在每次变更时运行它。
 `Pkcs11Signer` 通过小接口 `Token` 与设备交互；`PhpPkcs11Token` 是基于该扩展
 的实现。把自己的 `Token` 传给 `Pkcs11Signer::fromToken()`，即可在没有设备的
 情况下运行代码——本包的测试就是用基于 OpenSSL 的内存令牌这样做的。
+
+## php-pdf 系列
+
+| 包 | 提供的功能 |
+|---|---|
+| [php-pdf](https://github.com/dskripchenko/php-pdf) | 核心：用 HTML 加 CSS 或构建器生成 PDF，读取、合并、填写表单、签名和验证。 |
+| [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-pdf) | Laravel 桥接：Blade 视图直接生成 PDF、`response()->pdf()`、按配置签名。 |
+| [php-pdf-fonts-liberation](https://github.com/dskripchenko/php-pdf-fonts-liberation) | Liberation Sans、Serif 和 Mono，与 Arial、Times New Roman 和 Courier New 度量兼容（OFL 许可，独立于 MIT 核心之外）。 |
+| [php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro) | 使用服务器上 CryptoPro CSP 中的密钥签名：GOST R 34.10-2012，俄罗斯合格电子签名。 |
+| **php-pdf-pkcs11**（本包） | 通过 PKCS#11 使用 HSM、智能卡或 USB 令牌上的密钥签名。 |
+| [php-pdf-cloud-kms](https://github.com/dskripchenko/php-pdf-cloud-kms) | 使用 AWS KMS、Google Cloud KMS 或 Azure Key Vault 中的密钥签名。 |
 
 ## 许可证
 

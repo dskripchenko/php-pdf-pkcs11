@@ -92,6 +92,7 @@ haben — "2 private keys match, pass keyLabel: or keyId: — label "rsa", id
 
 ## Voraussetzungen
 
+- **PHP 8.2+** mit `dskripchenko/php-pdf` 1.19 oder neuer (Composer installiert es).
 - **Die Erweiterung php-pkcs11** —
   [gamringer/php-pkcs11](https://github.com/gamringer/php-pkcs11), gebaut
   für Ihre PHP-Version (`phpize && ./configure && make install`).
@@ -118,6 +119,17 @@ Die CI führt das bei jeder Änderung aus.
 Übergeben Sie ein eigenes `Token` an `Pkcs11Signer::fromToken()`, um den
 Code ohne Gerät auszuführen — so machen es die Tests dieses Pakets mit
 einem OpenSSL-basierten In-Memory-Token.
+
+## Die php-pdf-Familie
+
+| Paket | Was es hinzufügt |
+|---|---|
+| [php-pdf](https://github.com/dskripchenko/php-pdf) | Der Kern: HTML mit CSS oder ein Builder zu PDF, lesen, zusammenführen, Formulare ausfüllen, signieren und validieren. |
+| [laravel-php-pdf](https://github.com/dskripchenko/laravel-php-pdf) | Laravel-Brücke: eine Blade-View direkt als PDF, `response()->pdf()`, Signieren aus der Konfiguration. |
+| [php-pdf-fonts-liberation](https://github.com/dskripchenko/php-pdf-fonts-liberation) | Liberation Sans, Serif und Mono, metrisch kompatibel zu Arial, Times New Roman und Courier New (OFL, aus dem MIT-Kern herausgehalten). |
+| [php-pdf-cryptopro](https://github.com/dskripchenko/php-pdf-cryptopro) | Signiert mit einem Schlüssel in CryptoPro CSP auf dem Server: GOST R 34.10-2012, russische qualifizierte Signaturen. |
+| **php-pdf-pkcs11** (dieses Paket) | Signiert mit einem Schlüssel auf einem HSM, einer Smartcard oder einem USB-Token über PKCS#11. |
+| [php-pdf-cloud-kms](https://github.com/dskripchenko/php-pdf-cloud-kms) | Signiert mit einem Schlüssel in AWS KMS, Google Cloud KMS oder Azure Key Vault. |
 
 ## Lizenz
 
