@@ -1,0 +1,56 @@
+{
+    "name": "dskripchenko/php-pdf-pkcs11",
+    "description": "PKCS#11 signer for dskripchenko/php-pdf: sign PDFs (PAdES, RSA and ECDSA) with a key held by an HSM, a smart card or a USB token, through the php-pkcs11 extension.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "pdf",
+        "signature",
+        "pades",
+        "pkcs11",
+        "hsm",
+        "smart-card",
+        "token",
+        "softhsm",
+        "yubikey",
+        "php-pdf"
+    ],
+    "homepage": "https://github.com/dskripchenko/php-pdf-pkcs11",
+    "authors": [
+        {
+            "name": "Denis Skripchenko",
+            "email": "denskrp90@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "ext-openssl": "*",
+        "dskripchenko/php-pdf": "^1.19"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5",
+        "phpstan/phpstan": "^2.0"
+    },
+    "suggest": {
+        "ext-pkcs11": "The php-pkcs11 extension (github.com/gamringer/php-pkcs11) — required to talk to a real token"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dskripchenko\\PhpPdfPkcs11\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Dskripchenko\\PhpPdfPkcs11\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyse"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
